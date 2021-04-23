@@ -21,15 +21,18 @@ contract MsrContract is AccessControl {
     
     struct Msr {
         string name;
+        string mrn;
         string url;
     }
+
+    mapping(address => Msr) private _msrMapping;
+    Msr[] private _msrs;
 
     struct ServiceSpecification {
         string mrn;
         string version;
         string[] keywords;
         Msr msr;
-        Endorsement[] endorsements;
     }
 
     mapping(string => ServiceSpecification[]) private _serviceSpecificationKeywordIndex;
@@ -40,7 +43,6 @@ contract MsrContract is AccessControl {
         string version;
         string implementsSpecificationMRN;
         Msr msr;
-        Endorsement[] endorsements;
     }
 
     ServiceDesign[] private _serviceDesigns;
@@ -52,7 +54,6 @@ contract MsrContract is AccessControl {
         string coverageArea;
         string implementsDesignMRN;
         Msr msr;
-        Endorsement[] endorsements;
     }
 
     mapping(string => ServiceInstance[]) private _serviceInstanceKeywordIndex;
@@ -66,6 +67,18 @@ contract MsrContract is AccessControl {
         _setRoleAdmin(MSR_ROLE, MSR_ADMIN_ROLE);
     }
 
+    function addMsr(string calldata name, string calldata mrn, string calldata url, address account) public {
+        require(hasRole(MSR_ADMIN_ROLE, msg.sender), "You need to be an MSR admin to do this!");
+        grantRole(MSR_ROLE, account);
+        Msr memory msr = Msr({name: name, mrn: mrn, url: url});
+        _msrMapping[account] = msr;
+        _msrs.push(_msrMapping[account]);
+    }
+
+    function getMsrs() public view returns (Msr[] memory) {
+        return _msrs;
+    }
+
     function getEndorsers() public view returns (Endorser[] memory) {
         return _endorsers;
     }
@@ -74,14 +87,20 @@ contract MsrContract is AccessControl {
         return _serviceSpecifications;
     }
 
-    function registerServiceSpecification() public {
-        require(hasRole(MSR_ADMIN_ROLE, msg.sender), "You do not have permission to register service specifications!");
-        //ServiceSpecification storage serviceSpecification;
-        _serviceSpecifications.push();
+    function getServiceSpecifications(string calldata keyword) public view returns (ServiceSpecification[] memory) {
+        return _serviceSpecificationKeywordIndex[keyword];
+    }
 
-        //for (uint i = 0; i < serviceSpecification.keywords.length; i++) {
-        //    _serviceSpecificationKeywordIndex[serviceSpecification.keywords[i]].push(serviceSpecification);
-        //}
+    function registerServiceSpecification(string calldata mrn, string calldata version, string[] calldata keywords) public {
+        require(hasRole(MSR_ROLE, msg.sender), "You do not have permission to register service specifications!");
+        Msr storage msr = _msrMapping[msg.sender];
+        ServiceSpecification memory serviceSpecification = ServiceSpecification({mrn: mrn, version: version, keywords: keywords, msr: msr});
+        _serviceSpecifications.push(serviceSpecification);
+        ServiceSpecification storage _spec = _serviceSpecifications[_serviceSpecifications.length - 1];
+
+        for (uint i = 0; i < serviceSpecification.keywords.length; i++) {
+            _serviceSpecificationKeywordIndex[serviceSpecification.keywords[i]].push(_spec);
+        }
     }
     
     function getServiceDesigns() public view returns (ServiceDesign[] memory) {
