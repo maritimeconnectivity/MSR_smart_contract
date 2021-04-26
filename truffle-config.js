@@ -24,6 +24,10 @@
 // const fs = require('fs');
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
+const PrivateKeyProvider = require("@truffle/hdwallet-provider");
+const privateKey = "a7d1f3d3ed674e633d274e3dab80255cb85a3c2ca0541c3b1be660243f009fc1";
+const privateKeyProvider = new PrivateKeyProvider(privateKey, "ws://localhost:8546");
+
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -36,6 +40,10 @@ module.exports = {
    */
 
   networks: {
+    besuWallet: {
+      provider: privateKeyProvider,
+      network_id: "*"
+    }
     // Useful for testing. The `development` name is special - truffle uses it by default
     // if it's defined here and no other network is specified at the command line.
     // You should run a client (like ganache-cli, geth or parity) in a separate terminal
