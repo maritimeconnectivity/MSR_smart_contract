@@ -26,7 +26,7 @@ contract MsrContract is AccessControl {
     }
 
     mapping(address => Msr) private _msrMapping;
-    Msr[] private _msrs;
+    address[] private _msrs;
 
     struct ServiceSpecification {
         string mrn;
@@ -35,8 +35,18 @@ contract MsrContract is AccessControl {
         Msr msr;
     }
 
-    mapping(string => ServiceSpecification[]) private _serviceSpecificationKeywordIndex;
-    ServiceSpecification[] private _serviceSpecifications;
+    struct ServiceSpecificationInternal {
+        string mrn;
+        string version;
+        string[] keywords;
+        string uid;
+        address msr;
+    }
+
+    mapping(string => string[]) private _serviceSpecificationKeywordIndex;
+    mapping(string => ServiceSpecificationInternal) private _serviceSpecifications;
+    string[] private _serviceSpecificationKeys;
+    event serviceSpecAdded(ServiceSpecification);
 
     struct ServiceDesign {
         string mrn;
@@ -72,11 +82,16 @@ contract MsrContract is AccessControl {
         grantRole(MSR_ROLE, account);
         Msr memory msr = Msr({name: name, mrn: mrn, url: url});
         _msrMapping[account] = msr;
-        _msrs.push(_msrMapping[account]);
+        _msrs.push(account);
     }
 
     function getMsrs() public view returns (Msr[] memory) {
-        return _msrs;
+        Msr[] memory msrs = new Msr[](_msrs.length);
+        for (uint i = 0; i < _msrs.length; i++) {
+            Msr storage msr = _msrMapping[_msrs[i]];
+            msrs[i] = msr;
+        }
+        return msrs;
     }
 
     function getEndorsers() public view returns (Endorser[] memory) {
@@ -84,23 +99,41 @@ contract MsrContract is AccessControl {
     }
 
     function getServiceSpecifications() public view returns (ServiceSpecification[] memory) {
-        return _serviceSpecifications;
+        ServiceSpecification[] memory serviceSpecs = new ServiceSpecification[](_serviceSpecificationKeys.length);
+        for (uint i = 0; i < _serviceSpecificationKeys.length; i++) {
+            ServiceSpecificationInternal storage s = _serviceSpecifications[_serviceSpecificationKeys[i]];
+            serviceSpecs[i] = ServiceSpecification({mrn: s.mrn, version: s.version, keywords: s.keywords, msr: _msrMapping[s.msr]});
+        }
+        return serviceSpecs;
     }
 
-    function getServiceSpecifications(string calldata keyword) public view returns (ServiceSpecification[] memory) {
-        return _serviceSpecificationKeywordIndex[keyword];
+    function getServiceSpecificationsByKeyword(string calldata keyword) public view returns (ServiceSpecification[] memory) {
+        string[] storage specKeys = _serviceSpecificationKeywordIndex[keyword];
+        ServiceSpecification[] memory serviceSpecs = new ServiceSpecification[](specKeys.length);
+
+        for (uint i = 0; i < specKeys.length; i++) {
+            ServiceSpecificationInternal storage s = _serviceSpecifications[_serviceSpecificationKeys[i]];
+            serviceSpecs[i] = ServiceSpecification({mrn: s.mrn, version: s.version, keywords: s.keywords, msr: _msrMapping[s.msr]});
+        }
+
+        return serviceSpecs;
     }
 
     function registerServiceSpecification(string calldata mrn, string calldata version, string[] calldata keywords) public {
         require(hasRole(MSR_ROLE, msg.sender), "You do not have permission to register service specifications!");
-        Msr storage msr = _msrMapping[msg.sender];
-        ServiceSpecification memory serviceSpecification = ServiceSpecification({mrn: mrn, version: version, keywords: keywords, msr: msr});
-        _serviceSpecifications.push(serviceSpecification);
-        ServiceSpecification storage _spec = _serviceSpecifications[_serviceSpecifications.length - 1];
+
+        string memory uid = string(bytes.concat(bytes(mrn), bytes(version)));
+        require(bytes(_serviceSpecifications[uid].uid).length == 0, "Service specification already exists!");
+
+        ServiceSpecificationInternal memory serviceSpecification = ServiceSpecificationInternal({mrn: mrn, version: version, keywords: keywords, uid: uid, msr: msg.sender});
+        _serviceSpecificationKeys.push(uid);
+        _serviceSpecifications[uid] = serviceSpecification;
 
         for (uint i = 0; i < serviceSpecification.keywords.length; i++) {
-            _serviceSpecificationKeywordIndex[serviceSpecification.keywords[i]].push(_spec);
+            _serviceSpecificationKeywordIndex[serviceSpecification.keywords[i]].push(uid);
         }
+        ServiceSpecification memory spec = ServiceSpecification({mrn: mrn, version: version, keywords: keywords, msr: _msrMapping[msg.sender]});
+        emit serviceSpecAdded(spec);
     }
     
     function getServiceDesigns() public view returns (ServiceDesign[] memory) {
