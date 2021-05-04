@@ -40,22 +40,37 @@ contract MsrContract is AccessControl {
         string version;
         string[] keywords;
         string uid;
+        bytes32 uidHash;
         address msr;
     }
 
     mapping(string => string[]) private _serviceSpecificationKeywordIndex;
     mapping(string => ServiceSpecificationInternal) private _serviceSpecifications;
     string[] private _serviceSpecificationKeys;
-    event serviceSpecAdded(ServiceSpecification);
+    event ServiceSpecAdded(ServiceSpecification);
 
     struct ServiceDesign {
         string mrn;
         string version;
         string implementsSpecificationMRN;
+        string implementsSpecificationVersion;
         Msr msr;
     }
 
-    ServiceDesign[] private _serviceDesigns;
+    struct ServiceDesignInternal {
+        string mrn;
+        string version;
+        string implementsSpecificationMRN;
+        string implementsSpecificationVersion;
+        bytes32 specUidHash;
+        string uid;
+        bytes32 uidHash;
+        address msr;
+    }
+
+    mapping(string => ServiceDesignInternal) private _serviceDesigns;
+    string[] private _serviceDesignKeys;
+    event ServiceDesignAdded(ServiceDesign);
 
     struct ServiceInstance {
         string mrn;
@@ -125,7 +140,8 @@ contract MsrContract is AccessControl {
         string memory uid = string(bytes.concat(bytes(mrn), bytes(version)));
         require(bytes(_serviceSpecifications[uid].uid).length == 0, "Service specification already exists!");
 
-        ServiceSpecificationInternal memory serviceSpecification = ServiceSpecificationInternal({mrn: mrn, version: version, keywords: keywords, uid: uid, msr: msg.sender});
+        bytes32 uidHash = keccak256(abi.encodePacked(uid));
+        ServiceSpecificationInternal memory serviceSpecification = ServiceSpecificationInternal({mrn: mrn, version: version, keywords: keywords, uid: uid, uidHash: uidHash, msr: msg.sender});
         _serviceSpecificationKeys.push(uid);
         _serviceSpecifications[uid] = serviceSpecification;
 
@@ -133,40 +149,61 @@ contract MsrContract is AccessControl {
             _serviceSpecificationKeywordIndex[serviceSpecification.keywords[i]].push(uid);
         }
         ServiceSpecification memory spec = ServiceSpecification({mrn: mrn, version: version, keywords: keywords, msr: _msrMapping[msg.sender]});
-        emit serviceSpecAdded(spec);
+        emit ServiceSpecAdded(spec);
     }
     
     function getServiceDesigns() public view returns (ServiceDesign[] memory) {
-        return _serviceDesigns;
+        ServiceDesign[] memory designs = new ServiceDesign[](_serviceDesignKeys.length);
+
+        for (uint i = 0; i < _serviceDesignKeys.length; i++) {
+            ServiceDesignInternal storage d = _serviceDesigns[_serviceDesignKeys[i]];
+            designs[i] = ServiceDesign({mrn: d.mrn, version: d.version, implementsSpecificationMRN: d.implementsSpecificationMRN, implementsSpecificationVersion: d.implementsSpecificationVersion, msr: _msrMapping[d.msr]});
+        }
+
+        return designs;
     }
 
     /**
      * Returns an array of all service designs that implement a given specification
      */
-    function getServiceDesigns(string calldata specificationMRN) public view returns (ServiceDesign[] memory) {
-        bytes32 hash = keccak256(abi.encodePacked(specificationMRN));
+    function getServiceDesigns(string calldata specificationMRN, string calldata specificationVersion) public view returns (ServiceDesign[] memory) {
+        bytes memory specUid = bytes.concat(bytes(specificationMRN), bytes(specificationVersion));
+        bytes32 specUidHash = keccak256(abi.encodePacked(specUid));
+        
         uint count = 0;
-        for (uint i = 0; i < _serviceDesigns.length; i++) {
-            ServiceDesign storage design = _serviceDesigns[i];
-            string storage specMRN = design.implementsSpecificationMRN;
-            if (hash == keccak256(abi.encodePacked(specMRN))) {
+        for (uint i = 0; i < _serviceDesignKeys.length; i++) {
+            ServiceDesignInternal storage d = _serviceDesigns[_serviceDesignKeys[i]];
+            if (specUidHash == d.specUidHash) {
                 count++;
             }
         }
         ServiceDesign[] memory designs = new ServiceDesign[](count);
-        for (uint i = 0; i < _serviceDesigns.length; i++) {
-            ServiceDesign storage design = _serviceDesigns[i];
-            string storage specMRN = design.implementsSpecificationMRN;
-            if (hash == keccak256(abi.encodePacked(specMRN))) {
-                designs[i] = design;
+        for (uint i = 0; i < _serviceDesignKeys.length; i++) {
+            ServiceDesignInternal storage d = _serviceDesigns[_serviceDesignKeys[i]];
+            if (specUidHash == d.specUidHash) {
+                designs[i] = ServiceDesign({mrn: d.mrn, version: d.version, implementsSpecificationMRN: d.implementsSpecificationMRN, implementsSpecificationVersion: d.implementsSpecificationVersion, msr: _msrMapping[d.msr]});
             }
         }
         
         return designs;
     }
 
-    function registerServiceDesign(ServiceDesign calldata serviceDesign) public {
-        require(hasRole(MSR_ADMIN_ROLE, msg.sender), "You do not have permission to register service designs!");
-        _serviceDesigns.push(serviceDesign);
+    function registerServiceDesign(string calldata mrn, string calldata version, string calldata implementsSpecificationMRN, string calldata implementsSpecificationVersion) public {
+        require(hasRole(MSR_ROLE, msg.sender), "You do not have permission to register service designs!");
+        
+        string memory uid = string(bytes.concat(bytes(mrn), bytes(version)));
+        require(bytes(_serviceDesigns[uid].uid).length == 0, "Service design already exists!");
+
+        string memory specUid = string(bytes.concat(bytes(implementsSpecificationMRN), bytes(implementsSpecificationVersion)));
+        bytes32 specUidHash = keccak256(abi.encodePacked(specUid));
+        require(_serviceSpecifications[specUid].uidHash == specUidHash, "The implemented specification does not exist.");
+
+        bytes32 uidHash = keccak256(abi.encodePacked(uid));
+        ServiceDesignInternal memory design = ServiceDesignInternal({mrn: mrn, version: version, implementsSpecificationMRN: implementsSpecificationMRN, implementsSpecificationVersion: implementsSpecificationVersion, specUidHash: specUidHash, uid: uid, uidHash: uidHash, msr: msg.sender});
+        _serviceDesignKeys.push(uid);
+        _serviceDesigns[uid] = design;
+
+        ServiceDesign memory d = ServiceDesign({mrn: mrn, version: version, implementsSpecificationMRN: implementsSpecificationMRN, implementsSpecificationVersion: implementsSpecificationVersion, msr: _msrMapping[msg.sender]});
+        emit ServiceDesignAdded(d);
     }
 }
