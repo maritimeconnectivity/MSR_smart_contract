@@ -78,11 +78,27 @@ contract MsrContract is AccessControl {
         string[] keywords;
         string coverageArea;
         string implementsDesignMRN;
+        string implementsDesignVersion;
         Msr msr;
     }
 
-    mapping(string => ServiceInstance[]) private _serviceInstanceKeywordIndex;
-    ServiceInstance[] private _serviceInstances;
+    struct ServiceInstanceInternal {
+        string mrn;
+        string version;
+        string[] keywords;
+        string coverageArea;
+        string implementsDesignMRN;
+        string implementsDesignVersion;
+        bytes32 designUidHash;
+        string uid;
+        bytes32 uidHash;
+        address msr;
+    }
+
+    mapping(string => string[]) private _serviceInstanceKeywordIndex;
+    string[] private _serviceInstanceKeys;
+    mapping(string => ServiceInstanceInternal) private _serviceInstances;
+    event ServiceInstanceAdded(ServiceInstance);
 
     Endorser[] private _endorsers;
 
@@ -127,7 +143,7 @@ contract MsrContract is AccessControl {
         ServiceSpecification[] memory serviceSpecs = new ServiceSpecification[](specKeys.length);
 
         for (uint i = 0; i < specKeys.length; i++) {
-            ServiceSpecificationInternal storage s = _serviceSpecifications[_serviceSpecificationKeys[i]];
+            ServiceSpecificationInternal storage s = _serviceSpecifications[specKeys[i]];
             serviceSpecs[i] = ServiceSpecification({mrn: s.mrn, version: s.version, keywords: s.keywords, msr: _msrMapping[s.msr]});
         }
 
@@ -145,8 +161,8 @@ contract MsrContract is AccessControl {
         _serviceSpecificationKeys.push(uid);
         _serviceSpecifications[uid] = serviceSpecification;
 
-        for (uint i = 0; i < serviceSpecification.keywords.length; i++) {
-            _serviceSpecificationKeywordIndex[serviceSpecification.keywords[i]].push(uid);
+        for (uint i = 0; i < keywords.length; i++) {
+            _serviceSpecificationKeywordIndex[keywords[i]].push(uid);
         }
         ServiceSpecification memory spec = ServiceSpecification({mrn: mrn, version: version, keywords: keywords, msr: _msrMapping[msg.sender]});
         emit ServiceSpecAdded(spec);
@@ -205,5 +221,47 @@ contract MsrContract is AccessControl {
 
         ServiceDesign memory d = ServiceDesign({mrn: mrn, version: version, implementsSpecificationMRN: implementsSpecificationMRN, implementsSpecificationVersion: implementsSpecificationVersion, msr: _msrMapping[msg.sender]});
         emit ServiceDesignAdded(d);
+    }
+
+    function getServiceInstances() public view returns (ServiceInstance[] memory) {
+        ServiceInstance[] memory serviceInstances = new ServiceInstance[](_serviceInstanceKeys.length);
+        for (uint i = 0; i < _serviceInstanceKeys.length; i++) {
+            ServiceInstanceInternal storage inst = _serviceInstances[_serviceInstanceKeys[i]];
+            serviceInstances[i] = ServiceInstance({mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, msr: _msrMapping[inst.msr]});
+        }
+
+        return serviceInstances;
+    }
+
+    function getServiceInstancesByKeyword(string calldata keyword) public view returns (ServiceInstance[] memory) {
+        string[] storage instanceKeys = _serviceInstanceKeywordIndex[keyword];
+        ServiceInstance[] memory serviceInstances = new ServiceInstance[](instanceKeys.length);
+
+        for (uint i = 0; i < instanceKeys.length; i++) {
+            ServiceInstanceInternal storage inst = _serviceInstances[instanceKeys[i]];
+            serviceInstances[i] = ServiceInstance({mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, msr: _msrMapping[inst.msr]});
+        }
+
+        return serviceInstances;
+    }
+
+    function registerServiceInstance(string calldata mrn, string calldata version, string[] calldata keywords, string calldata coverageArea, string calldata implementsDesignMRN, string calldata implementsDesignVersion) public {
+        require(hasRole(MSR_ROLE, msg.sender), "You do not have permission to register service instances!");
+
+        string memory uid = string(bytes.concat(bytes(mrn), bytes(version)));
+        require(bytes(_serviceInstances[uid].uid).length == 0, "Service instance already exists!");
+
+        string memory designUid = string(bytes.concat(bytes(implementsDesignMRN), bytes(implementsDesignVersion)));
+        bytes32 designUidHash = keccak256(abi.encodePacked(designUid));
+        require(_serviceDesigns[designUid].uidHash == designUidHash, "The implemeted design does not exist!");
+
+        bytes32 uidHash = keccak256(abi.encodePacked(uid));
+        _serviceInstanceKeys.push(uid);
+        _serviceInstances[uid] = ServiceInstanceInternal({mrn: mrn, version: version, keywords: keywords, coverageArea: coverageArea, implementsDesignMRN: implementsDesignMRN, implementsDesignVersion: implementsDesignVersion, designUidHash: designUidHash, uid: uid, uidHash: uidHash, msr: msg.sender});
+
+        for (uint i = 0; i < keywords.length; i++) {
+            _serviceInstanceKeywordIndex[keywords[i]].push(uid);
+        }
+        emit ServiceInstanceAdded(ServiceInstance({mrn: mrn, version: version, keywords: keywords, coverageArea: coverageArea, implementsDesignMRN: implementsDesignMRN, implementsDesignVersion: implementsDesignVersion, msr: _msrMapping[msg.sender]}));
     }
 }
