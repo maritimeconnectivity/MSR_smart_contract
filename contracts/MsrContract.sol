@@ -245,23 +245,24 @@ contract MsrContract is AccessControl {
         return serviceInstances;
     }
 
-    function registerServiceInstance(string calldata mrn, string calldata version, string[] calldata keywords, string calldata coverageArea, string calldata implementsDesignMRN, string calldata implementsDesignVersion) public {
+    function registerServiceInstance(ServiceInstance memory instance) public {
         require(hasRole(MSR_ROLE, msg.sender), "You do not have permission to register service instances!");
 
-        string memory uid = string(bytes.concat(bytes(mrn), bytes(version)));
+        string memory uid = string(bytes.concat(bytes(instance.mrn), bytes(instance.version)));
         require(bytes(_serviceInstances[uid].uid).length == 0, "Service instance already exists!");
 
-        string memory designUid = string(bytes.concat(bytes(implementsDesignMRN), bytes(implementsDesignVersion)));
+        string memory designUid = string(bytes.concat(bytes(instance.implementsDesignMRN), bytes(instance.implementsDesignVersion)));
         bytes32 designUidHash = keccak256(abi.encodePacked(designUid));
         require(_serviceDesigns[designUid].uidHash == designUidHash, "The implemeted design does not exist!");
 
         bytes32 uidHash = keccak256(abi.encodePacked(uid));
         _serviceInstanceKeys.push(uid);
-        _serviceInstances[uid] = ServiceInstanceInternal({mrn: mrn, version: version, keywords: keywords, coverageArea: coverageArea, implementsDesignMRN: implementsDesignMRN, implementsDesignVersion: implementsDesignVersion, designUidHash: designUidHash, uid: uid, uidHash: uidHash, msr: msg.sender});
+        _serviceInstances[uid] = ServiceInstanceInternal({mrn: instance.mrn, version: instance.version, keywords: instance.keywords, coverageArea: instance.coverageArea, implementsDesignMRN: instance.implementsDesignMRN, implementsDesignVersion: instance.implementsDesignVersion, designUidHash: designUidHash, uid: uid, uidHash: uidHash, msr: msg.sender});
 
-        for (uint i = 0; i < keywords.length; i++) {
-            _serviceInstanceKeywordIndex[keywords[i]].push(uid);
+        for (uint i = 0; i < instance.keywords.length; i++) {
+            _serviceInstanceKeywordIndex[instance.keywords[i]].push(uid);
         }
-        emit ServiceInstanceAdded(ServiceInstance({mrn: mrn, version: version, keywords: keywords, coverageArea: coverageArea, implementsDesignMRN: implementsDesignMRN, implementsDesignVersion: implementsDesignVersion, msr: _msrMapping[msg.sender]}));
+        instance.msr = _msrMapping[msg.sender];
+        emit ServiceInstanceAdded(instance);
     }
 }
