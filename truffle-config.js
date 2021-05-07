@@ -40,7 +40,7 @@ module.exports = {
 
   networks: {
     // besuWallet: {
-    //   provider: new PrivateKeyProvider({privateKeys: [privateKey], providerOrUrl: "ws://localhost:8546", chainId: 1337}),
+    //   provider: new PrivateKeyProvider({privateKeys: [privateKey], providerOrUrl: "ws://localhost:8546"}),
     //   network_id: "*"
     // }
     // Useful for testing. The `development` name is special - truffle uses it by default
@@ -93,11 +93,11 @@ module.exports = {
       // docker: true,        // Use "0.5.1" you've installed locally with docker (default: false)
       // settings: {          // See the solidity docs for advice about optimization and evmVersion
       //  optimizer: {
-      //    enabled: false,
+      //    enabled: true,
       //    runs: 200
       //  },
-      //  evmVersion: "byzantium"
-      // }
+      // //  evmVersion: "byzantium"
+      // },
       version: "native"
     }
   },
