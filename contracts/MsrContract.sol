@@ -116,6 +116,8 @@ contract MsrContract is AccessControl {
 
     function addMsr(string calldata name, string calldata mrn, string calldata url, address account) public {
         require(hasRole(MSR_ADMIN_ROLE, msg.sender), "You need to be an MSR admin to do this!");
+        Msr storage tmp = _msrMapping[account];
+        require(bytes(tmp.name).length == 0, "MSR already exists!");
         grantRole(MSR_ROLE, account);
         Msr memory msr = Msr({name: name, mrn: mrn, url: url});
         _msrMapping[account] = msr;
