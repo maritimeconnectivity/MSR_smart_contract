@@ -71,10 +71,6 @@ contract MsrContract is AccessControl {
         return msrs;
     }
 
-    function getEndorsers() public view returns (Endorser[] memory) {
-        return _endorsers;
-    }
-
     function getServiceInstances() public view returns (ServiceInstance[] memory) {
         ServiceInstance[] memory serviceInstances = new ServiceInstance[](_serviceInstanceKeys.length);
         for (uint i = 0; i < _serviceInstanceKeys.length; i++) {
