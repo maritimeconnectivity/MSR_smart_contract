@@ -9,16 +9,6 @@ contract MsrContract is AccessControl {
     bytes32 public constant MSR_ADMIN_ROLE = keccak256("MSR_ADMIN_ROLE");
     bytes32 public constant MSR_ROLE = keccak256("MSR_ROLE");
 
-    struct Endorser {
-        string name;
-        bytes certificate;
-    }
-
-    struct Endorsement {
-        Endorser endorser;
-        bytes signature;
-    }
-    
     struct Msr {
         string name;
         string url;
@@ -55,8 +45,6 @@ contract MsrContract is AccessControl {
     string[] private _serviceInstanceKeys;
     mapping(string => ServiceInstanceInternal) private _serviceInstances;
     event ServiceInstanceAdded(ServiceInstance);
-
-    Endorser[] private _endorsers;
 
     constructor() {
         _setupRole(SUPER_ADMIN_ROLE, msg.sender);
