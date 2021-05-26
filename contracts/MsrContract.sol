@@ -21,7 +21,6 @@ contract MsrContract is AccessControl {
     
     struct Msr {
         string name;
-        string mrn;
         string url;
     }
 
@@ -65,12 +64,12 @@ contract MsrContract is AccessControl {
         _setRoleAdmin(MSR_ROLE, MSR_ADMIN_ROLE);
     }
 
-    function addMsr(string calldata name, string calldata mrn, string calldata url, address account) public {
+    function addMsr(string calldata name, string calldata url, address account) public {
         require(hasRole(MSR_ADMIN_ROLE, msg.sender), "You need to be an MSR admin to do this!");
         Msr storage tmp = _msrMapping[account];
         require(bytes(tmp.name).length == 0, "MSR already exists!");
         grantRole(MSR_ROLE, account);
-        Msr memory msr = Msr({name: name, mrn: mrn, url: url});
+        Msr memory msr = Msr({name: name, url: url});
         _msrMapping[account] = msr;
         _msrs.push(account);
     }
