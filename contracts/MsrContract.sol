@@ -42,6 +42,7 @@ contract MsrContract is AccessControl {
     }
 
     mapping(string => string[]) private _serviceInstanceKeywordIndex;
+    mapping(bytes => string[]) private _serviceInstanceByDesignIndex;
     string[] private _serviceInstanceKeys;
     mapping(string => ServiceInstanceInternal) private _serviceInstances;
     event ServiceInstanceAdded(ServiceInstance);
@@ -93,6 +94,20 @@ contract MsrContract is AccessControl {
         return serviceInstances;
     }
 
+    function getServiceInstancesByDesign(string calldata designMRN, string calldata designVersion) public view returns (ServiceInstance[] memory) {
+        bytes memory designUid = bytes.concat(bytes(designMRN), bytes(designVersion));
+        string[] storage instanceKeys = _serviceInstanceByDesignIndex[designUid];
+
+        ServiceInstance[] memory serviceInstances = new ServiceInstance[](instanceKeys.length);
+
+        for (uint i = 0; i < instanceKeys.length; i++) {
+            ServiceInstanceInternal storage inst = _serviceInstances[instanceKeys[i]];
+            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, msr: _msrMapping[inst.msr]});
+        }
+
+        return serviceInstances;
+    }
+
     function registerServiceInstance(ServiceInstance memory instance) public {
         require(hasRole(MSR_ROLE, msg.sender), "You do not have permission to register service instances!");
 
@@ -106,6 +121,10 @@ contract MsrContract is AccessControl {
         for (uint i = 0; i < instance.keywords.length; i++) {
             _serviceInstanceKeywordIndex[instance.keywords[i]].push(uid);
         }
+
+        bytes memory designUid = bytes.concat(bytes(instance.implementsDesignMRN), bytes(instance.implementsDesignVersion));
+        _serviceInstanceByDesignIndex[designUid].push(uid);
+
         instance.msr = _msrMapping[msg.sender];
         emit ServiceInstanceAdded(instance);
     }
