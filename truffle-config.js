@@ -39,6 +39,7 @@ module.exports = {
    */
 
   networks: {
+    // NOTE: THE FOUR LINES BELOW SHOULD BE UNCOMMENTED WHEN DEPLOYING
     // besuWallet: {
     //   provider: new PrivateKeyProvider({privateKeys: [privateKey], providerOrUrl: "ws://localhost:8546"}),
     //   network_id: "*"
