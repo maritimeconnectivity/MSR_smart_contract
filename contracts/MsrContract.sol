@@ -45,7 +45,7 @@ contract MsrContract is AccessControl {
     mapping(bytes => string[]) private _serviceInstanceByDesignIndex;
     string[] private _serviceInstanceKeys;
     mapping(string => ServiceInstanceInternal) private _serviceInstances;
-    event ServiceInstanceAdded(ServiceInstance);
+    event ServiceInstanceAdded(ServiceInstance serviceInstance);
 
     constructor() {
         _setupRole(SUPER_ADMIN_ROLE, msg.sender);
