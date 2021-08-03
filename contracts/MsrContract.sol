@@ -21,7 +21,7 @@ contract MsrContract is AccessControl {
         string name;
         string mrn;
         string version;
-        string[] keywords;
+        string keywords;
         string coverageArea;
         string implementsDesignMRN;
         string implementsDesignVersion;
@@ -32,7 +32,7 @@ contract MsrContract is AccessControl {
         string name;
         string mrn;
         string version;
-        string[] keywords;
+        string keywords;
         string coverageArea;
         string implementsDesignMRN;
         string implementsDesignVersion;
@@ -108,7 +108,7 @@ contract MsrContract is AccessControl {
         return serviceInstances;
     }
 
-    function registerServiceInstance(ServiceInstance memory instance) public {
+    function registerServiceInstance(ServiceInstance memory instance, string[] calldata keywords) public {
         require(hasRole(MSR_ROLE, msg.sender), "You do not have permission to register service instances!");
 
         string memory uid = string(bytes.concat(bytes(instance.mrn), bytes(instance.version)));
@@ -118,14 +118,20 @@ contract MsrContract is AccessControl {
         _serviceInstanceKeys.push(uid);
         _serviceInstances[uid] = ServiceInstanceInternal({name: instance.name, mrn: instance.mrn, version: instance.version, keywords: instance.keywords, coverageArea: instance.coverageArea, implementsDesignMRN: instance.implementsDesignMRN, implementsDesignVersion: instance.implementsDesignVersion, uid: uid, uidHash: uidHash, msr: msg.sender});
 
-        for (uint i = 0; i < instance.keywords.length; i++) {
-            _serviceInstanceKeywordIndex[instance.keywords[i]].push(uid);
+        bytes memory keywordsConcat = "";
+        for (uint i = 0; i < keywords.length; i++) {
+            _serviceInstanceKeywordIndex[keywords[i]].push(uid);
+            keywordsConcat = bytes.concat(bytes.concat(keywordsConcat, bytes(keywords[i]), bytes(" ")));
         }
+
+        string memory keywordsConcatString = string(keywordsConcat);
+        _serviceInstances[uid].keywords = keywordsConcatString;
 
         bytes memory designUid = bytes.concat(bytes(instance.implementsDesignMRN), bytes(instance.implementsDesignVersion));
         _serviceInstanceByDesignIndex[designUid].push(uid);
 
         instance.msr = _msrMapping[msg.sender];
+        instance.keywords = keywordsConcatString;
         emit ServiceInstanceAdded(instance);
     }
 }

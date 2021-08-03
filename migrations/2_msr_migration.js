@@ -12,7 +12,7 @@ module.exports = async function(deployer, network, accounts) {
             name: 'instance 1', 
             mrn: 'urn:mrn:mcp:service:mcc:core:instance:example', 
             version: '0.1', 
-            keywords: ['kw1', 'kw2'], 
+            keywords: '', 
             coverageArea: 'POLYGON((10.689 -25.092, 34.595 -20.170, 38.814 -35.639, 13.502 -39.155, 10.689 -25.092))', 
             implementsDesignMRN: 'urn:mrn:mcp:service:mcc:core:design:example', 
             implementsDesignVersion: '0.1',
@@ -21,7 +21,7 @@ module.exports = async function(deployer, network, accounts) {
                 url: ''
             }
         };
-    await instance.registerServiceInstance(service, {from: accounts[0]});
+    await instance.registerServiceInstance(service, ['kw1', 'kw2'], {from: accounts[0]});
 };
 // use this to NOT preload the contract with dummy data
 // module.exports = function(deployer) {

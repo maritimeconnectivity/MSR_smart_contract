@@ -12,8 +12,8 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@openzeppelin/contracts": "^4.0.0",
-    "@truffle/hdwallet-provider": "1.2.6",
-    "truffle": "^5.3.3"
+    "@truffle/hdwallet-provider": "1.4.2",
+    "truffle": "5.4.3"
   },
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.10",
