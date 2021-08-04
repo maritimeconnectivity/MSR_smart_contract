@@ -121,7 +121,10 @@ contract MsrContract is AccessControl {
         bytes memory keywordsConcat = "";
         for (uint i = 0; i < keywords.length; i++) {
             _serviceInstanceKeywordIndex[keywords[i]].push(uid);
-            keywordsConcat = bytes.concat(bytes.concat(keywordsConcat, bytes(keywords[i]), bytes(" ")));
+            keywordsConcat = bytes.concat(keywordsConcat, bytes(keywords[i]));
+            if (i != keywords.length - 1) {
+                keywordsConcat = bytes.concat(keywordsConcat, bytes(" "));
+            }
         }
 
         string memory keywordsConcatString = string(keywordsConcat);
