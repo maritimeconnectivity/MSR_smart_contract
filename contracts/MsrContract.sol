@@ -17,12 +17,15 @@ contract MsrContract is AccessControl {
     mapping(address => Msr) private _msrMapping;
     address[] private _msrs;
 
+    enum InstanceStatus { Provisional, Released, Deprecated, Deleted }
+
     struct ServiceInstance {
         string name;
         string mrn;
         string version;
         string keywords;
         string coverageArea;
+        InstanceStatus status;
         string implementsDesignMRN;
         string implementsDesignVersion;
         Msr msr;
@@ -36,6 +39,7 @@ contract MsrContract is AccessControl {
         string coverageArea;
         string implementsDesignMRN;
         string implementsDesignVersion;
+        InstanceStatus status;
         string uid;
         bytes32 uidHash;
         address msr;
@@ -43,6 +47,7 @@ contract MsrContract is AccessControl {
 
     mapping(string => string[]) private _serviceInstanceKeywordIndex;
     mapping(bytes => string[]) private _serviceInstanceByDesignIndex;
+    mapping(address => string[]) private _serviceInstancesByMsrIndex;
     string[] private _serviceInstanceKeys;
     mapping(string => ServiceInstanceInternal) private _serviceInstances;
     event ServiceInstanceAdded(ServiceInstance serviceInstance);
@@ -76,7 +81,7 @@ contract MsrContract is AccessControl {
         ServiceInstance[] memory serviceInstances = new ServiceInstance[](_serviceInstanceKeys.length);
         for (uint i = 0; i < _serviceInstanceKeys.length; i++) {
             ServiceInstanceInternal storage inst = _serviceInstances[_serviceInstanceKeys[i]];
-            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, msr: _msrMapping[inst.msr]});
+            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msr: _msrMapping[inst.msr]});
         }
 
         return serviceInstances;
@@ -88,7 +93,7 @@ contract MsrContract is AccessControl {
 
         for (uint i = 0; i < instanceKeys.length; i++) {
             ServiceInstanceInternal storage inst = _serviceInstances[instanceKeys[i]];
-            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, msr: _msrMapping[inst.msr]});
+            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msr: _msrMapping[inst.msr]});
         }
 
         return serviceInstances;
@@ -102,7 +107,7 @@ contract MsrContract is AccessControl {
 
         for (uint i = 0; i < instanceKeys.length; i++) {
             ServiceInstanceInternal storage inst = _serviceInstances[instanceKeys[i]];
-            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, msr: _msrMapping[inst.msr]});
+            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msr: _msrMapping[inst.msr]});
         }
 
         return serviceInstances;
@@ -116,7 +121,7 @@ contract MsrContract is AccessControl {
 
         bytes32 uidHash = keccak256(abi.encodePacked(uid));
         _serviceInstanceKeys.push(uid);
-        _serviceInstances[uid] = ServiceInstanceInternal({name: instance.name, mrn: instance.mrn, version: instance.version, keywords: instance.keywords, coverageArea: instance.coverageArea, implementsDesignMRN: instance.implementsDesignMRN, implementsDesignVersion: instance.implementsDesignVersion, uid: uid, uidHash: uidHash, msr: msg.sender});
+        _serviceInstances[uid] = ServiceInstanceInternal({name: instance.name, mrn: instance.mrn, version: instance.version, keywords: instance.keywords, coverageArea: instance.coverageArea, implementsDesignMRN: instance.implementsDesignMRN, implementsDesignVersion: instance.implementsDesignVersion, status: instance.status, uid: uid, uidHash: uidHash, msr: msg.sender});
 
         bytes memory keywordsConcat = "";
         for (uint i = 0; i < keywords.length; i++) {
@@ -132,9 +137,25 @@ contract MsrContract is AccessControl {
 
         bytes memory designUid = bytes.concat(bytes(instance.implementsDesignMRN), bytes(instance.implementsDesignVersion));
         _serviceInstanceByDesignIndex[designUid].push(uid);
+        _serviceInstancesByMsrIndex[msg.sender].push(uid);
 
         instance.msr = _msrMapping[msg.sender];
         instance.keywords = keywordsConcatString;
         emit ServiceInstanceAdded(instance);
+    }
+
+    function changeInstanceStatus(string calldata instanceMrn, string calldata instanceVersion, InstanceStatus newStatus) public {
+        string memory uid = string(bytes.concat(bytes(instanceMrn), bytes(instanceVersion)));
+        require(hasRole(MSR_ROLE, msg.sender) && (msg.sender == _serviceInstances[uid].msr), "You do not have permission to change the status of this instance!");
+
+        _serviceInstances[uid].status = newStatus;
+    }
+
+    function deleteMsr(address msrAddress) public {
+        require(hasRole(MSR_ADMIN_ROLE, msg.sender), "You do not have permission to delete the MSR!");
+        revokeRole(MSR_ROLE, msrAddress);
+        for (uint i = 0; i < _serviceInstancesByMsrIndex[msrAddress].length; i++) {
+            _serviceInstances[_serviceInstancesByMsrIndex[msrAddress][i]].status = InstanceStatus.Deleted;
+        }
     }
 }
