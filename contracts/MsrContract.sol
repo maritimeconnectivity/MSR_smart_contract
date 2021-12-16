@@ -77,6 +77,13 @@ contract MsrContract is AccessControl {
         return msrs;
     }
 
+    function getServiceInstance(string calldata instanceMrn, string calldata version) public view returns (ServiceInstance memory) {
+        string memory instanceUid = string(bytes.concat(bytes(instanceMrn), bytes(version)));
+        ServiceInstanceInternal storage inst = _serviceInstances[instanceUid];
+        ServiceInstance memory instance = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msr: _msrMapping[inst.msr]});
+        return instance;
+    }
+
     function getServiceInstances() public view returns (ServiceInstance[] memory) {
         ServiceInstance[] memory serviceInstances = new ServiceInstance[](_serviceInstanceKeys.length);
         for (uint i = 0; i < _serviceInstanceKeys.length; i++) {
