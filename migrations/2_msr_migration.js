@@ -18,10 +18,8 @@ module.exports = async function(deployer, network, accounts) {
             status: initialStatus,
             implementsDesignMRN: 'urn:mrn:mcp:service:mcc:core:design:example', 
             implementsDesignVersion: '0.1',
-            msr: {
-                name: '',
-                url: ''
-            }
+            msrName: '',
+            msrUrl: ''
         };
     await instance.registerServiceInstance(service, ['kw1', 'kw2'], {from: accounts[0]});
 };

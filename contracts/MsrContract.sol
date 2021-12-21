@@ -28,7 +28,8 @@ contract MsrContract is AccessControl {
         InstanceStatus status;
         string implementsDesignMRN;
         string implementsDesignVersion;
-        Msr msr;
+        string msrName;
+        string msrUrl;
     }
 
     struct ServiceInstanceInternal {
@@ -80,7 +81,8 @@ contract MsrContract is AccessControl {
     function getServiceInstance(string calldata instanceMrn, string calldata version) public view returns (ServiceInstance memory) {
         string memory instanceUid = string(bytes.concat(bytes(instanceMrn), bytes(version)));
         ServiceInstanceInternal storage inst = _serviceInstances[instanceUid];
-        ServiceInstance memory instance = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msr: _msrMapping[inst.msr]});
+        Msr storage msr = _msrMapping[inst.msr];
+        ServiceInstance memory instance = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msrName: msr.name, msrUrl: msr.url});
         return instance;
     }
 
@@ -88,7 +90,8 @@ contract MsrContract is AccessControl {
         ServiceInstance[] memory serviceInstances = new ServiceInstance[](_serviceInstanceKeys.length);
         for (uint i = 0; i < _serviceInstanceKeys.length; i++) {
             ServiceInstanceInternal storage inst = _serviceInstances[_serviceInstanceKeys[i]];
-            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msr: _msrMapping[inst.msr]});
+            Msr storage msr = _msrMapping[inst.msr];
+            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msrName: msr.name, msrUrl: msr.url});
         }
 
         return serviceInstances;
@@ -100,7 +103,8 @@ contract MsrContract is AccessControl {
 
         for (uint i = 0; i < instanceKeys.length; i++) {
             ServiceInstanceInternal storage inst = _serviceInstances[instanceKeys[i]];
-            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msr: _msrMapping[inst.msr]});
+            Msr storage msr = _msrMapping[inst.msr];
+            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msrName: msr.name, msrUrl: msr.url});
         }
 
         return serviceInstances;
@@ -114,7 +118,8 @@ contract MsrContract is AccessControl {
 
         for (uint i = 0; i < instanceKeys.length; i++) {
             ServiceInstanceInternal storage inst = _serviceInstances[instanceKeys[i]];
-            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msr: _msrMapping[inst.msr]});
+            Msr storage msr = _msrMapping[inst.msr];
+            serviceInstances[i] = ServiceInstance({name: inst.name, mrn: inst.mrn, version: inst.version, keywords: inst.keywords, coverageArea: inst.coverageArea, implementsDesignMRN: inst.implementsDesignMRN, implementsDesignVersion: inst.implementsDesignVersion, status: inst.status, msrName: msr.name, msrUrl: msr.url});
         }
 
         return serviceInstances;
@@ -146,7 +151,9 @@ contract MsrContract is AccessControl {
         _serviceInstanceByDesignIndex[designUid].push(uid);
         _serviceInstancesByMsrIndex[msg.sender].push(uid);
 
-        instance.msr = _msrMapping[msg.sender];
+        Msr storage msr = _msrMapping[msg.sender];
+        instance.msrName = msr.name;
+        instance.msrUrl = msr.url;
         instance.keywords = keywordsConcatString;
         emit ServiceInstanceAdded(instance);
     }
