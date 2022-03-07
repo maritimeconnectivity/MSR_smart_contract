@@ -11,12 +11,12 @@
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "@openzeppelin/contracts": "^4.0.0",
-    "@truffle/hdwallet-provider": "2.0.0",
-    "truffle": "5.4.25"
+    "@openzeppelin/contracts": "^4.5.0",
+    "@truffle/hdwallet-provider": "2.0.3",
+    "truffle": "5.5.3"
   },
   "devDependencies": {
-    "@openzeppelin/test-helpers": "^0.5.10",
-    "chai": "^4.3.4"
+    "@openzeppelin/test-helpers": "^0.5.15",
+    "chai": "^4.3.6"
   }
 }
