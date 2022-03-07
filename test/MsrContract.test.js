@@ -25,13 +25,12 @@ contract('MsrContract', ([owner, other, msr1]) => {
             mrn: 'urn:mrn:mcp:service:mcc:core:instance:example', 
             version: '0.1', 
             keywords: 'safety navigation', 
-            coverageArea: 'POLYGON((10.689 -25.092, 34.595 -20.170, 38.814 -35.639, 13.502 -39.155, 10.689 -25.092))', 
+            coverageArea: 'POLYGON((10.689 -25.092, 34.595 -20.170, 38.814 -35.639, 13.502 -39.155, 10.689 -25.092))',
+            status: 1, // Released
             implementsDesignMRN: 'urn:mrn:mcp:service:mcc:core:design:example', 
             implementsDesignVersion: '0.1',
-            msr: {
-                name: '',
-                url: ''
-            }
+            msrName: '',
+            msrUrl: ''
         };
         await this.msrContract.registerServiceInstance(service, service.keywords.split(" "), {from: msr1});
 
