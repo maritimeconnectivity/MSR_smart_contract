@@ -8,7 +8,7 @@ Our implementation is based on the [Ethereum blockchain](https://ethereum.org/en
 
 In order to run our smart contract over the Ethereum blockchain, the local blockchain network should be up and running beforehand.
 
-Please follow [the deployment guideline of the quorum-test-network](https://consensys.net/quorum/products/guides/getting-started-with-consensys-quorum/) to deploy.
+Please follow [the deployment guideline of a Besu test network](https://besu.hyperledger.org/en/stable/private-networks/tutorials/quickstart/#prerequisites) to deploy.
 
 When the network is online, deploy the smart contract by the command below::
 
